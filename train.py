@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils import data as torchdata
 
-from transformers import AutoFeatureExtractor, ResNetForImageClassification
+from transformers import BertTokenizer, BertModel
 from datasets import load_dataset, DatasetDict
 
 import flor
@@ -18,12 +18,12 @@ batch_size = 8
 learning_rate = 0.001
 
 # Data loader
-data = load_dataset("imagenet-1k")
+data = load_dataset("wikipedia", "20220301.en")
 assert isinstance(data, DatasetDict)
 assert set(data.keys()) == {"train", "validation", "test"}  # type: ignore
 
-feature_extractor = AutoFeatureExtractor.from_pretrained("microsoft/resnet-152")
-model = ResNetForImageClassification.from_pretrained("microsoft/resnet-152").to(device)  # type: ignore
+feature_extractor = BertTokenizer.from_pretrained("bert-base-uncased")
+model = BertModels.from_pretrained("bert-base-uncased").to(device)  # type: ignore
 Flor.checkpoints(model)
 
 
