@@ -15,8 +15,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyper-parameters
 num_epochs = 5
-batch_size = 4
+batch_size = 6
 learning_rate = 0.001
+max_length = 480
 
 # Data loader
 data = load_dataset("wikipedia", "20220301.en")
@@ -40,7 +41,7 @@ def my_collate(batch):
         original_text,
         return_tensors="pt",
         padding="max_length",
-        max_length=512,
+        max_length=max_length,
         truncation=True,
     )
 
@@ -67,7 +68,10 @@ for epoch in Flor.loop(range(num_epochs)):
 
         # Forward pass
         outputs = model(**batch)
-
+        loss = criterion(
+            outputs.prediction_logits.reshape((batch_size, -1, max_length)),
+            batch["input_ids"],
+        )
         # loss = Variable(
         #     criterion(
         #         outputs.prediction_logits.argmax(2).float(),
