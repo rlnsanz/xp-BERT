@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils import data as torchdata
+from torch.autograd import Variable
 
-from transformers import BertTokenizer, BertModel
-from datasets import load_dataset, DatasetDict
+from transformers import BertTokenizer, BertForPreTraining
+from datasets import load_dataset, DatasetDict, Dataset
 
 import flor
 from flor import MTK as Flor
@@ -13,49 +14,41 @@ from flor import MTK as Flor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyper-parameters
-num_epochs = 2
-batch_size = 8
+num_epochs = 5
+batch_size = 4
 learning_rate = 0.001
 
 # Data loader
 data = load_dataset("wikipedia", "20220301.en")
 assert isinstance(data, DatasetDict)
-assert set(data.keys()) == {"train", "validation", "test"}  # type: ignore
+assert set(data.keys()) == {
+    "train",
+}  # type: ignore
+assert isinstance(data["train"], Dataset)
+assert set(data["train"].features) == {"id", "url", "title", "text"}
 
 feature_extractor = BertTokenizer.from_pretrained("bert-base-uncased")
-model = BertModels.from_pretrained("bert-base-uncased").to(device)  # type: ignore
+model = BertForPreTraining.from_pretrained("bert-base-uncased").to(device)  # type: ignore
 Flor.checkpoints(model)
 
 
 def my_collate(batch):
-    new_batch = []
+    original_text = []
     for i, record in enumerate(batch):
-        if len(record["image"].shape) == 3:
-            h, w, c = record["image"].shape
-            im = record["image"].reshape((3, h, w))
-        elif len(record["image"].shape) == 2:
-            h, w = record["image"].shape
-            im = record["image"].reshape((1, h, w))
-            im = im.repeat(3, 1, 1)
-        else:
-            raise
+        original_text.append(record["text"])
+    new_features = feature_extractor(
+        original_text,
+        return_tensors="pt",
+        padding="max_length",
+        max_length=512,
+        truncation=True,
+    )
 
-        im = feature_extractor(im, return_tensors="pt")["pixel_values"]
-        new_batch.append(
-            {
-                "label": record["label"],
-                "image": im,
-            }
-        )
-
-    out = torchdata.default_collate(new_batch)
-    out["image"] = out["image"].reshape(batch_size, 3, 224, 224)
-    return out
+    # torchdata.default_collate(new_features)
+    return new_features
 
 
 train_loader = torchdata.DataLoader(dataset=data["train"].with_format("torch"), batch_size=batch_size, shuffle=True, collate_fn=my_collate)  # type: ignore
-val_loader = torchdata.DataLoader(dataset=data["validation"].with_format("torch"), batch_size=batch_size, shuffle=False, collate_fn=my_collate)  # type: ignore
-test_loader = torchdata.DataLoader(dataset=data["test"].with_format("torch"), batch_size=batch_size, shuffle=False, collate_fn=my_collate)  # type: ignore
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -69,12 +62,19 @@ for epoch in Flor.loop(range(num_epochs)):
     model.train()
     for i, batch in Flor.loop(enumerate(train_loader)):
         # Move tensors to the configured device
-        images = batch["image"].to(device)
-        labels = batch["label"].to(device)
+        # text = feature_extractor.decode(each) for each in batch["input_ids"]
+        batch = batch.to(device)
 
         # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs.logits, labels)
+        outputs = model(**batch)
+
+        loss = Variable(
+            criterion(
+                outputs.prediction_logits.argmax(2).float(),
+                batch["input_ids"].float(),
+            ),
+            requires_grad=True,
+        )
 
         # Backward and optimize
         optimizer.zero_grad()
@@ -91,54 +91,8 @@ for epoch in Flor.loop(range(num_epochs)):
                 # bootleg sampling
                 break
 
-    model.eval()
-    with torch.no_grad():
-        correct = 0
-        total = 0
-        print(f"evaluating for 1000 rounds")
-        for i, batch in enumerate(val_loader):
-            # Move tensors to the configured device
-            images = batch["image"].to(device)
-            labels = batch["label"].to(device)
-
-            # Forward pass
-            outputs = model(images)
-            left, predicted = torch.max(outputs.logits, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-            if i % 100 == 0:
-                print(i, correct, total)
-                if i == 1000:
-                    break
-
-        print(
-            "Accuracy of the network on the 8000 test images: {} %".format(
-                flor.log("val_acc", 100 * correct / total)
-            )
-        )
+    print("Model Validate")
 
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
-model.eval()
-with torch.no_grad():
-    correct = 0
-    total = 0
-    print(f"evaluating for {len(val_loader)} rounds")
-    for i, batch in enumerate(val_loader):
-        # Move tensors to the configured device
-        images = batch["image"].to(device)
-        labels = batch["label"].to(device)
-
-        # Forward pass
-        outputs = model(images)
-        left, predicted = torch.max(outputs.logits, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-
-        if i % 100 == 0:
-            print(i, correct, total)
-
-    print(
-        f"Accuracy of the network on the {len(val_loader) * batch_size} test images: {flor.log('acc', 100 * correct / total)}"
-    )
+print("Model TEST")
