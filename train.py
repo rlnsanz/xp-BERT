@@ -14,16 +14,18 @@ from flor import MTK as Flor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyper-parameters
-num_epochs = 5
+num_epochs = 0
 batch_size = 6
 learning_rate = 0.001
 max_length = 480
 
 # Data loader
-data = load_dataset("wikipedia", "20220301.en")
+data = load_dataset("wikipedia", "20220301.en")["train"].train_test_split(test_size=0.2)
+print(data)
 assert isinstance(data, DatasetDict)
 assert set(data.keys()) == {
     "train",
+    "test"
 }  # type: ignore
 assert isinstance(data["train"], Dataset)
 assert set(data["train"].features) == {"id", "url", "title", "text"}
@@ -50,6 +52,7 @@ def my_collate(batch):
 
 
 train_loader = torchdata.DataLoader(dataset=data["train"].with_format("torch"), batch_size=batch_size, shuffle=True, collate_fn=my_collate)  # type: ignore
+val_loader = torchdata.DataLoader(dataset=data["test"].with_format("torch"), batch_size=batch_size, shuffle=False, collate_fn=my_collate) 
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -100,3 +103,22 @@ for epoch in Flor.loop(range(num_epochs)):
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
 print("Model TEST")
+model.eval()
+with torch.no_grad():
+    correct = 0
+    total = 0
+    print(f"evaluating for {len(val_loader)} rounds")
+    for i, batch in enumerate(val_loader):
+        # Move tensors to the configured device
+        # print(batch)
+        batch = batch.to(device)
+
+        # Forward pass
+        outputs = model(**batch)
+        labels = batch['input_ids']
+        preds = outputs.prediction_logits.argmax(-1)
+        
+        total += labels.shape[0] * labels.shape[1]
+        correct += (preds == labels).sum().item()
+
+        print("acc: ", correct/total)
