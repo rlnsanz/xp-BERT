@@ -14,19 +14,16 @@ from flor import MTK as Flor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyper-parameters
-num_epochs = 0
-batch_size = 6
-learning_rate = 0.001
-max_length = 480
+num_epochs = flor.arg('epochs', default=5)
+batch_size = flor.arg('batch_size', 6)
+learning_rate = flor.arg('lr', 0.001)
+max_length = flor.arg('max_length', 480)
 
 # Data loader
-data = load_dataset("wikipedia", "20220301.en")["train"].train_test_split(test_size=0.2)
+data = load_dataset("wikipedia", "20220301.en")["train"].train_test_split(test_size=0.2)  # type: ignore
 print(data)
 assert isinstance(data, DatasetDict)
-assert set(data.keys()) == {
-    "train",
-    "test"
-}  # type: ignore
+assert set(data.keys()) == {"train", "test"}  # type: ignore
 assert isinstance(data["train"], Dataset)
 assert set(data["train"].features) == {"id", "url", "title", "text"}
 
@@ -52,7 +49,12 @@ def my_collate(batch):
 
 
 train_loader = torchdata.DataLoader(dataset=data["train"].with_format("torch"), batch_size=batch_size, shuffle=True, collate_fn=my_collate)  # type: ignore
-val_loader = torchdata.DataLoader(dataset=data["test"].with_format("torch"), batch_size=batch_size, shuffle=False, collate_fn=my_collate) 
+val_loader = torchdata.DataLoader(
+    dataset=data["test"].with_format("torch"),  # type: ignore
+    batch_size=batch_size,
+    shuffle=False,
+    collate_fn=my_collate,
+)
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -115,10 +117,10 @@ with torch.no_grad():
 
         # Forward pass
         outputs = model(**batch)
-        labels = batch['input_ids']
+        labels = batch["input_ids"]
         preds = outputs.prediction_logits.argmax(-1)
-        
+
         total += labels.shape[0] * labels.shape[1]
         correct += (preds == labels).sum().item()
 
-        print("acc: ", correct/total)
+        print("acc: ", correct / total)
