@@ -124,4 +124,4 @@ with torch.no_grad():
         total += labels.shape[0] * labels.shape[1]
         correct += (preds == labels).sum().item()
 
-        print("acc: ", correct / total)
+    print("acc: ", correct / total)
