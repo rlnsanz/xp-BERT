@@ -112,6 +112,8 @@ with torch.no_grad():
     total = 0
     print(f"evaluating for {len(val_loader)} rounds")
     for i, batch in enumerate(val_loader):
+        if i >= 50:
+            break
         # Move tensors to the configured device
         # print(batch)
         batch = batch.to(device)
