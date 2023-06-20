@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils import data as torchdata
 from torch.autograd import Variable
 
-from transformers import BertTokenizer, BertForPreTraining
+from transformers import BertTokenizer, BertForPreTraining  # type: ignore
 from datasets import load_dataset, DatasetDict, Dataset
 
 import flor
@@ -14,10 +14,10 @@ from flor import MTK as Flor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyper-parameters
-num_epochs = flor.arg('epochs', default=5)
-batch_size = flor.arg('batch_size', 6)
-learning_rate = flor.arg('lr', 0.001)
-max_length = flor.arg('max_length', 480)
+num_epochs = flor.arg("epochs", default=5)
+batch_size = flor.arg("batch_size", 6)
+learning_rate = flor.arg("lr", 0.001)
+max_length = flor.arg("max_length", 480)
 
 # Data loader
 data = load_dataset("wikipedia", "20220301.en")["train"].train_test_split(test_size=0.2)  # type: ignore
@@ -105,6 +105,7 @@ for epoch in Flor.loop(range(num_epochs)):
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
 print("Model TEST")
+# import sys; sys.exit(0)
 model.eval()
 with torch.no_grad():
     correct = 0
