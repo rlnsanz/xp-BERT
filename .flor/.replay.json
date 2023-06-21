@@ -1,12 +1,12 @@
 {
     "NAME": "BATCH",
-    "TSTAMP": "2023-06-20T21:37:32.json",
+    "TSTAMP": "2023-06-20T22:04:53.json",
     "max_length": 480,
     "PROJID": "xp-BERT_flor.shadow.sigmod",
     "EPOCHS": 10,
     "CLI": {
         "epochs": "10",
-        "batch_size": "2",
+        "batch_size": "6",
         "lr": "1e-06"
     }
 }
