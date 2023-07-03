@@ -128,3 +128,4 @@ with torch.no_grad():
         correct += (preds == labels).sum().item()
 
     print("acc: ", correct / total)
+    flor.log('acc', correct / total)
