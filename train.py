@@ -101,6 +101,7 @@ for epoch in Flor.loop(range(num_epochs)):
                 break
 
     print("Model Validate")
+    flor.log('dp', epoch)
 
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
