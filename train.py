@@ -114,6 +114,9 @@ with torch.no_grad():
     for i, batch in enumerate(val_loader):
         # Move tensors to the configured device
         # print(batch)
+        if i >= 1000:
+            break 
+
         batch = batch.to(device)
 
         # Forward pass
@@ -124,4 +127,4 @@ with torch.no_grad():
         total += labels.shape[0] * labels.shape[1]
         correct += (preds == labels).sum().item()
 
-        print("acc: ", correct / total)
+    print("acc: ", correct / total)
