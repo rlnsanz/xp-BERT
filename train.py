@@ -11,7 +11,9 @@ import flor
 from flor import MTK as Flor
 
 # Device configuration
-device = torch.device(flor.arg("device", "cuda" if torch.cuda.is_available() else "cpu"))
+device = torch.device(
+    flor.arg("device", "cuda" if torch.cuda.is_available() else "cpu")
+)
 
 # Hyper-parameters
 num_epochs = flor.arg("epochs", default=5)
@@ -114,6 +116,9 @@ with torch.no_grad():
     for i, batch in enumerate(val_loader):
         # Move tensors to the configured device
         # print(batch)
+        if i >= 1000:
+            break
+
         batch = batch.to(device)
 
         # Forward pass
@@ -124,4 +129,4 @@ with torch.no_grad():
         total += labels.shape[0] * labels.shape[1]
         correct += (preds == labels).sum().item()
 
-        print("acc: ", correct / total)
+    print("acc: ", correct / total)
